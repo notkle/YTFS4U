@@ -330,22 +330,69 @@
       }
     } catch(e) {}
 
-    // 3. Wait for orientation + chrome to reset/settle
-    await sleep(700);
+    // 3. Wait for orientation to physically complete
+    await waitForOrientation();
+    // 4. Wait for visualViewport to settle after chrome resets
+    await waitForViewportSettle();
 
-    // 4. Scroll the bottom scroll-layer to collapse Brave chrome
+    // 5. Scroll the bottom scroll-layer to collapse Brave chrome
     await collapseChrome();
 
-    // 5. Lock scroll-layer so user can't bring chrome back
+    // 6. Lock scroll-layer so user can't bring chrome back
     lockScrollLayer();
 
-    // 6. Resize to full visualViewport
+    // 7. Resize to full visualViewport
     applyViewportSize();
     overlay.classList.remove('show');
 
     isFullscreen = true;
     updateFsBtn();
     showControls();
+  }
+
+  // Wait for orientationchange event (rotation physically done)
+  function waitForOrientation() {
+    return new Promise(resolve => {
+      // If orientation already matches landscape, resolve immediately
+      if (screen.orientation && screen.orientation.type.includes('landscape')) {
+        return resolve();
+      }
+      const handler = () => {
+        screen.orientation.removeEventListener('change', handler);
+        window.removeEventListener('orientationchange', handler);
+        resolve();
+      };
+      if (screen.orientation) {
+        screen.orientation.addEventListener('change', handler);
+      } else {
+        window.addEventListener('orientationchange', handler);
+      }
+      // Safety timeout — resolve after 1.5s regardless
+      setTimeout(resolve, 1500);
+    });
+  }
+
+  // Wait for visualViewport to stop changing (chrome has settled)
+  function waitForViewportSettle() {
+    return new Promise(resolve => {
+      if (!vv) return setTimeout(resolve, 300);
+      let timer;
+      const handler = () => {
+        clearTimeout(timer);
+        // Resolve 150ms after last resize event — viewport is stable
+        timer = setTimeout(() => {
+          vv.removeEventListener('resize', handler);
+          resolve();
+        }, 150);
+      };
+      vv.addEventListener('resize', handler);
+      // Safety: if no resize fires within 800ms, proceed anyway
+      setTimeout(() => {
+        vv.removeEventListener('resize', handler);
+        clearTimeout(timer);
+        resolve();
+      }, 800);
+    });
   }
 
   // Scroll the dedicated scroll-layer div (not window) — it sits behind the iframe
