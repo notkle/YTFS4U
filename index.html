@@ -16,16 +16,23 @@
     --muted: #555;
   }
 
-  html, body {
+  html {
     height: 100%;
+    /* Keep body scrollable underneath fixed player for nudge trick */
+    overflow-y: scroll;
+  }
+
+  body {
+    min-height: 100%;
+    /* Extra height so window.scrollBy actually works */
+    padding-bottom: 200px;
     background: var(--dark);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    overflow: hidden;
   }
 
   #home {
-    height: 100%;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -109,7 +116,9 @@
     display: none;
     flex-direction: column;
     position: fixed;
-    inset: 0;
+    top: 0; left: 0;
+    width: 100%;
+    /* Height set dynamically via JS to match visualViewport */
     background: #000;
     z-index: 100;
   }
@@ -119,11 +128,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
-    padding-top: max(10px, env(safe-area-inset-top));
+    padding: 8px 12px;
     background: #000;
     gap: 10px;
     flex-shrink: 0;
+    /* Fixed small height so iframe gets maximum space */
+    height: 48px;
   }
 
   .top-bar button {
@@ -131,13 +141,16 @@
     border: none;
     color: #fff;
     border-radius: 8px;
-    padding: 8px 14px;
+    padding: 6px 12px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     white-space: nowrap;
     flex-shrink: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
   }
   .top-bar button:active { opacity: 0.6; }
   .top-bar button.on { background: var(--red); }
@@ -152,8 +165,7 @@
     text-align: center;
   }
 
-  #fs-btn { font-size: 16px; padding: 8px 12px !important; }
-
+  /* iframe fills everything below top bar */
   .iframe-wrap {
     flex: 1;
     position: relative;
@@ -168,6 +180,30 @@
     width: 100%; height: 100%;
     border: none;
   }
+
+  /* Spinner shown while collapsing chrome */
+  #fs-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: #000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+  }
+  #fs-overlay.show { display: flex; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid rgba(255,255,255,0.15);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -187,8 +223,14 @@
   <p class="hint">Works with youtube.com links, youtu.be links,<br>playlists, and bare video IDs</p>
 </div>
 
+<!-- Fullscreen transition overlay -->
+<div id="fs-overlay">
+  <div class="spinner"></div>
+  <span>Going fullscreen…</span>
+</div>
+
 <div id="player-screen">
-  <div class="top-bar" id="top-bar">
+  <div class="top-bar">
     <button onclick="goHome()">← Back</button>
     <span class="video-title" id="video-title"></span>
     <button id="cc-btn" class="on" onclick="toggleCC()">CC</button>
@@ -202,8 +244,25 @@
 <script>
   let ccOn = true;
   let isFullscreen = false;
-  let barTimeout;
 
+  // ── VISUAL VIEWPORT: source of truth for available height ──
+  const vv = window.visualViewport;
+
+  function applyViewportSize() {
+    const ps = document.getElementById('player-screen');
+    if (!ps.classList.contains('active')) return;
+    const h = vv ? vv.height : window.innerHeight;
+    ps.style.height = h + 'px';
+    ps.style.top = (vv ? vv.offsetTop : 0) + 'px';
+  }
+
+  if (vv) {
+    vv.addEventListener('resize', applyViewportSize);
+    vv.addEventListener('scroll', applyViewportSize);
+  }
+  window.addEventListener('resize', applyViewportSize);
+
+  // ── URL PARSING ──
   function extractIds(raw) {
     raw = raw.trim();
     if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return { videoId: raw, listId: null };
@@ -231,25 +290,31 @@
     return `${base}?${params.toString()}`;
   }
 
+  // ── LOAD VIDEO ──
   function loadVideo() {
     const raw = document.getElementById('url-input').value;
     const err = document.getElementById('error-msg');
     err.classList.remove('show');
     const { videoId, listId } = extractIds(raw);
     if (!videoId && !listId) { err.classList.add('show'); return; }
+
     ccOn = true;
     document.getElementById('yt-iframe').src = buildSrc(videoId, listId, ccOn);
     document.getElementById('cc-btn').classList.add('on');
-    document.getElementById('player-screen').classList.add('active');
-    // Nudge Brave bar to collapse, then lock all scroll
-    setTimeout(nudgeAndLock, 400);
+
+    const ps = document.getElementById('player-screen');
+    ps.classList.add('active');
+    applyViewportSize();
   }
 
   function goHome() {
-    exitFullscreen();
-    unlockScroll();
+    isFullscreen = false;
+    updateFsBtn();
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
     document.getElementById('player-screen').classList.remove('active');
+    document.getElementById('player-screen').style.height = '';
     document.getElementById('yt-iframe').src = '';
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   function toggleCC() {
@@ -262,47 +327,78 @@
     iframe.src = url.toString();
   }
 
-  function toggleFullscreen() {
-    if (isFullscreen) exitFullscreen();
-    else enterFullscreen();
-  }
+  // ── FULLSCREEN: lock landscape → wait → scroll until chrome gone → resize ──
+  async function toggleFullscreen() {
+    if (isFullscreen) {
+      exitFullscreen();
+      return;
+    }
 
-  function enterFullscreen() {
-    const ps = document.getElementById('player-screen');
-    if (ps.requestFullscreen) {
-      ps.requestFullscreen().catch(() => {});
-    } else if (ps.webkitRequestFullscreen) {
-      ps.webkitRequestFullscreen();
-    }
+    const overlay = document.getElementById('fs-overlay');
+    overlay.classList.add('show');
+
+    // 1. Lock to landscape
     if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {});
+      try { await screen.orientation.lock('landscape'); } catch(e) {}
     }
+
+    // 2. Wait for orientation + chrome reset to settle
+    await sleep(600);
+
+    // 3. Scroll body downward until visualViewport.height stops growing
+    await collapseChrome();
+
+    // 4. Resize player to full visualViewport, hide overlay
+    applyViewportSize();
+    overlay.classList.remove('show');
+
+    lockScroll(); // prevent any swipe bringing chrome back
     isFullscreen = true;
     updateFsBtn();
   }
 
-  function exitFullscreen() {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
+  async function collapseChrome() {
+    const startH = vv ? vv.height : window.innerHeight;
+    let lastH = startH;
+    let stableCount = 0;
+
+    // Scroll down in steps — body has 200px padding so scrollBy works
+    for (let i = 0; i < 60; i++) {
+      window.scrollBy({ top: 8, behavior: 'instant' });
+      await sleep(30);
+
+      const nowH = vv ? vv.height : window.innerHeight;
+
+      if (nowH > lastH) {
+        // Height grew — chrome is collapsing, keep going until stable
+        lastH = nowH;
+        stableCount = 0;
+      } else {
+        stableCount++;
+        // Stable for 5 consecutive checks = done
+        if (stableCount >= 5 && nowH > startH) break;
+        // Also stop if we've been stable a long time even if no change
+        if (stableCount >= 15) break;
+      }
     }
+  }
+
+  function exitFullscreen() {
+    unlockScroll();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
     isFullscreen = false;
     updateFsBtn();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    applyViewportSize();
   }
 
   function updateFsBtn() {
     document.getElementById('fs-btn').textContent = isFullscreen ? '✕FS' : '⛶';
   }
 
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) { isFullscreen = false; updateFsBtn(); }
-  });
-  document.addEventListener('webkitfullscreenchange', () => {
-    if (!document.webkitFullscreenElement) { isFullscreen = false; updateFsBtn(); }
-  });
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // ── SCROLL LOCK ──
-  // Completely block all touch scrolling — prevents Brave chrome reappearing
+  // ── PULL-TO-REFRESH + SCROLL LOCK ──
   function blockTouch(e) { e.preventDefault(); }
 
   function lockScroll() {
@@ -313,28 +409,14 @@
     document.removeEventListener('touchmove', blockTouch);
   }
 
-  // Scroll incrementally until Brave's toolbar collapses (detected via innerHeight growing)
-  // then hard-lock so no swipe can bring it back
-  async function nudgeAndLock() {
-    unlockScroll();
-    const startHeight = window.innerHeight;
-
-    // Make page tall enough to scroll
-    document.documentElement.style.height = '200vh';
-    document.documentElement.style.overflow = 'auto';
-
-    // Scroll in small steps, stop as soon as chrome is gone
-    for (let i = 0; i < 80; i++) {
-      window.scrollBy(0, 5);
-      await new Promise(r => setTimeout(r, 25));
-      if (window.innerHeight > startHeight) break; // chrome collapsed!
+  // Block pull-to-refresh at all times (even on home screen)
+  let lastTouchY = 0;
+  document.addEventListener('touchstart', e => { lastTouchY = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (window.scrollY <= 0 && e.touches[0].clientY > lastTouchY) {
+      e.preventDefault();
     }
-
-    // Reset page size and hard-lock all scrolling
-    document.documentElement.style.height = '';
-    document.documentElement.style.overflow = '';
-    lockScroll();
-  }
+  }, { passive: false });
 
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') loadVideo();
