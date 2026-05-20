@@ -16,8 +16,14 @@
     --muted: #555;
   }
 
-  html, body {
+  /* Base page always scrollable — this is what Brave watches for chrome hide */
+  html {
     height: 100%;
+    overflow-y: scroll;
+  }
+  body {
+    min-height: 100%;
+    padding-bottom: 400px; /* real scroll room */
     background: var(--dark);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -25,7 +31,7 @@
 
   /* ── HOME ── */
   #home {
-    height: 100%;
+    height: 100vh;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: 32px 24px; gap: 32px;
@@ -66,132 +72,71 @@
   /* ── PLAYER ── */
   #player-screen {
     display: none;
+    flex-direction: column;
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 50;
-    background: #000;
-  }
-  #player-screen.active { display: block; }
-
-  /* iframe layer */
-  #iframe-layer {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 1;
-  }
-  #yt-iframe { width: 100%; height: 100%; border: none; display: block; }
-
-  /* Tap catcher — above iframe, invisible, catches taps when controls hidden */
-  #tap-catcher {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 2; background: transparent;
-  }
-  #tap-catcher.off { display: none; }
-
-  /* Controls overlay */
-  #controls-overlay {
-    position: absolute;
     top: 0; left: 0; width: 100%;
-    z-index: 3;
-    padding: 10px 14px;
-    padding-top: max(10px, env(safe-area-inset-top));
-    display: flex; align-items: center; gap: 10px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
-    transition: opacity 0.4s ease;
+    background: #000;
+    z-index: 100;
   }
-  #controls-overlay.hidden { opacity: 0; pointer-events: none; }
-  #controls-overlay button {
-    background: rgba(0,0,0,0.6);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff; border-radius: 8px;
-    padding: 8px 14px; font-size: 13px; font-weight: 600;
+  #player-screen.active { display: flex; }
+
+  /* Top bar — real DOM element, swipeable, passes scroll to base page */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    background: #000;
+    gap: 10px;
+    flex-shrink: 0;
+    /* Tall enough to swipe on comfortably */
+    height: 56px;
+    /* Subtle swipe hint gradient at bottom */
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Swipe indicator label in top bar */
+  .swipe-label {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.2);
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  /* Hide swipe label once fullscreen locked */
+  #player-screen.fs-locked .swipe-label { display: none; }
+
+  .top-bar button {
+    background: rgba(255,255,255,0.12);
+    border: none; color: #fff; border-radius: 8px;
+    padding: 7px 13px; font-size: 13px; font-weight: 600;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
     white-space: nowrap; flex-shrink: 0;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
-  #controls-overlay button:active { opacity: 0.6; }
-  #controls-overlay button.on { background: var(--red); border-color: var(--red); }
+  .top-bar button:active { opacity: 0.6; }
+  .top-bar button.on { background: var(--red); }
   .spacer { flex: 1; }
 
-  /* ── SWIPE-TO-FULLSCREEN PHASE ──
-     Shown instead of player while waiting for user to swipe up.
-     Has a REAL scrollable area behind a pointer-events:none hint.
-  */
-  #swipe-phase {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 100;
+  /* iframe fills everything below top bar */
+  .iframe-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
     background: #000;
+    min-height: 0;
   }
-  #swipe-phase.show { display: block; }
-
-  /* Real scrollable div — receives the user's swipe */
-  #swipe-scroll {
+  #yt-iframe {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    z-index: 1;
-    /* VISIBLE for testing — bright background so we can confirm scrollability */
-    background: #1a1a2e;
+    border: none;
   }
-  #swipe-scroll::-webkit-scrollbar {
-    width: 8px;
-  }
-  #swipe-scroll::-webkit-scrollbar-track {
-    background: #333;
-  }
-  #swipe-scroll::-webkit-scrollbar-thumb {
-    background: var(--red);
-    border-radius: 4px;
-  }
-  /* Tall enough that there's plenty of scroll room */
-  #swipe-scroll-inner {
-    height: 3000px;
-    width: 100%;
-    /* Gradient so user can see they're scrolling */
-    background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 60px;
-    gap: 40px;
-    color: rgba(255,255,255,0.15);
-    font-size: 13px;
-    user-select: none;
-  }
-
-  /* Hint text — floats above scroll area, touch-transparent */
-  #swipe-hint-text {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 2;
-    pointer-events: none; /* passes all touches to #swipe-scroll below */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    text-align: center;
-    padding: 32px;
-    /* Semi-transparent so scroll content is visible behind */
-    background: rgba(0,0,0,0.5);
-  }
-
-  .hint-arrow {
-    font-size: 40px;
-    animation: swipeUp 1.4s ease-in-out infinite;
-  }
-  @keyframes swipeUp {
-    0%   { transform: translateY(10px); opacity: 0.3; }
-    50%  { transform: translateY(-10px); opacity: 1; }
-    100% { transform: translateY(10px); opacity: 0.3; }
-  }
-  .hint-title { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
-  .hint-body { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; max-width: 260px; }
-  .hint-sub { font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.5; max-width: 240px; }
 </style>
 </head>
 <body>
@@ -211,50 +156,26 @@
   <p class="hint">Works with youtube.com, youtu.be, playlists, and bare video IDs</p>
 </div>
 
-<!-- Swipe phase: shown while waiting for user to collapse chrome -->
-<div id="swipe-phase">
-  <!-- Real scrollable surface — receives actual finger swipes -->
-  <div id="swipe-scroll">
-    <div id="swipe-scroll-inner">
-    <span>▲ swipe up ▲</span>
-    <span>— 500px —</span>
-    <span>— 1000px —</span>
-    <span>— 1500px —</span>
-    <span>— 2000px —</span>
-    <span>— 2500px —</span>
-  </div>
-  </div>
-  <!-- Hint floats above, touch-transparent so swipes pass through -->
-  <div id="swipe-hint-text">
-    <div class="hint-arrow">☝️</div>
-    <div class="hint-title">Swipe up to go fullscreen</div>
-    <div class="hint-body">Swipe up on this screen to hide Brave's toolbar — we'll lock it and go fullscreen automatically.</div>
-    <div class="hint-sub">Only needed once each time you rotate.</div>
-  </div>
-</div>
-
-<!-- Player -->
 <div id="player-screen">
-  <div id="iframe-layer">
-    <iframe id="yt-iframe" allow="autoplay; fullscreen" allowfullscreen></iframe>
-  </div>
-  <div id="tap-catcher"></div>
-  <div id="controls-overlay">
+  <div class="top-bar">
     <button onclick="goHome()">← Back</button>
     <div class="spacer"></div>
     <button id="cc-btn" class="on" onclick="toggleCC()">CC</button>
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
+    <span class="swipe-label">swipe up here to hide chrome</span>
+  </div>
+  <div class="iframe-wrap">
+    <iframe id="yt-iframe" allow="autoplay; fullscreen" allowfullscreen></iframe>
   </div>
 </div>
 
 <script>
   let ccOn = true;
   let isFullscreen = false;
-  let fadeTimer = null;
   let chromeWatcher = null;
   const vv = window.visualViewport;
 
-  // ── VISUAL VIEWPORT ──
+  // ── VISUAL VIEWPORT: size player to true visible area ──
   function applyViewportSize() {
     const ps = document.getElementById('player-screen');
     if (!ps.classList.contains('active')) return;
@@ -263,22 +184,8 @@
     ps.style.height = h + 'px';
     ps.style.top = t + 'px';
   }
-  if (vv) vv.addEventListener('resize', applyViewportSize);
+  if (vv) { vv.addEventListener('resize', applyViewportSize); }
   window.addEventListener('resize', applyViewportSize);
-
-  // ── CONTROLS FADE ──
-  function showControls() {
-    const ov = document.getElementById('controls-overlay');
-    const tc = document.getElementById('tap-catcher');
-    ov.classList.remove('hidden');
-    tc.classList.add('off');
-    clearTimeout(fadeTimer);
-    fadeTimer = setTimeout(() => {
-      ov.classList.add('hidden');
-      tc.classList.remove('off');
-    }, 2500);
-  }
-  document.getElementById('tap-catcher').addEventListener('click', showControls);
 
   // ── URL PARSING ──
   function extractIds(raw) {
@@ -319,9 +226,10 @@
     document.getElementById('yt-iframe').src = buildSrc(videoId, listId, ccOn);
     document.getElementById('cc-btn').classList.add('on');
     document.getElementById('home').style.display = 'none';
-    document.getElementById('player-screen').classList.add('active');
+    const ps = document.getElementById('player-screen');
+    ps.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
     applyViewportSize();
-    showControls();
   }
 
   function goHome() {
@@ -329,14 +237,13 @@
     isFullscreen = false;
     updateFsBtn();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-    document.body.classList.remove('fs-active');
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    document.getElementById('swipe-phase').classList.remove('show');
-    document.getElementById('player-screen').classList.remove('active');
-    document.getElementById('player-screen').style.height = '';
-    document.getElementById('player-screen').style.top = '';
+    const ps = document.getElementById('player-screen');
+    ps.classList.remove('active', 'fs-locked');
+    ps.style.height = '';
+    ps.style.top = '';
     document.getElementById('home').style.display = '';
     document.getElementById('yt-iframe').src = '';
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   function toggleCC() {
@@ -347,50 +254,57 @@
     url.searchParams.set('cc_load_policy', ccOn ? '1' : '0');
     url.searchParams.set('autoplay', '1');
     iframe.src = url.toString();
-    showControls();
   }
 
   // ── FULLSCREEN ──
   async function toggleFullscreen() {
     if (isFullscreen) { exitFullscreen(); return; }
 
-    // 1. Lock orientation to landscape
+    // Lock landscape
     try {
       if (screen.orientation && screen.orientation.lock) {
         await screen.orientation.lock('landscape');
       }
     } catch(e) {}
 
-    // 2. Wait for rotation to physically complete
+    // Wait for orientation to settle
     await waitForOrientation();
 
-    // 3. Make base page tall and scrollable so swiping on video hides chrome
-    document.body.classList.add('fs-active');
+    // Reset scroll to top so there's max room to scroll up
     window.scrollTo({ top: 0, behavior: 'instant' });
 
-    isFullscreen = true;
-    updateFsBtn();
-    showControls();
-  }
+    // Watch for chrome collapse via visualViewport growing
+    // User swipes up on the top bar to trigger it
+    const startH = vv ? vv.height : window.innerHeight;
+    stopChromeWatcher();
+    chromeWatcher = setInterval(() => {
+      const nowH = vv ? vv.height : window.innerHeight;
+      if (nowH > startH + 10) {
+        stopChromeWatcher();
+        // Chrome gone — snap player to full viewport and lock
+        applyViewportSize();
+        document.getElementById('player-screen').classList.add('fs-locked');
+        isFullscreen = true;
+        updateFsBtn();
+      }
+    }, 80);
 
-  function stopChromeWatcher() {
-    if (chromeWatcher) { clearInterval(chromeWatcher); chromeWatcher = null; }
+    updateFsBtn(); // show ✕FS while waiting
+    isFullscreen = true; // optimistic — lets btn show exit state
   }
 
   function exitFullscreen() {
     stopChromeWatcher();
-    document.body.classList.remove('fs-active');
-    window.scrollTo({ top: 0, behavior: 'instant' });
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-    document.body.classList.remove('fs-active');
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    document.getElementById('swipe-phase').classList.remove('show');
+    document.getElementById('player-screen').classList.remove('fs-locked');
     isFullscreen = false;
     updateFsBtn();
-    document.getElementById('player-screen').style.height = '';
-    document.getElementById('player-screen').style.top = '';
+    window.scrollTo({ top: 0, behavior: 'instant' });
     applyViewportSize();
-    showControls();
+  }
+
+  function stopChromeWatcher() {
+    if (chromeWatcher) { clearInterval(chromeWatcher); chromeWatcher = null; }
   }
 
   function updateFsBtn() {
@@ -411,7 +325,7 @@
     });
   }
 
-  // Pull-to-refresh block on home
+  // Pull-to-refresh block
   let lastTouchY = 0;
   document.addEventListener('touchstart', e => { lastTouchY = e.touches[0].clientY; }, { passive: true });
   document.addEventListener('touchmove', e => {
