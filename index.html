@@ -26,14 +26,10 @@
   /* ── HOME ── */
   #home {
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 24px;
-    gap: 32px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px; gap: 32px;
   }
-
   .logo {
     display: flex; flex-direction: column;
     align-items: center; gap: 10px; text-align: center;
@@ -45,9 +41,7 @@
   }
   .logo h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
   .logo p { font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 260px; }
-
   .input-wrap { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; }
-
   input[type="text"] {
     width: 100%; background: var(--mid); border: 1px solid var(--border);
     border-radius: 12px; padding: 16px 18px; font-size: 15px; color: var(--text);
@@ -55,7 +49,6 @@
   }
   input[type="text"]::placeholder { color: var(--muted); }
   input[type="text"]:focus { border-color: var(--red); }
-
   button.go {
     width: 100%; background: var(--red); color: #fff; border: none;
     border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 600;
@@ -80,7 +73,7 @@
   }
   #player-screen.active { display: block; }
 
-  /* iframe fills entire player */
+  /* iframe layer */
   #iframe-layer {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -88,30 +81,26 @@
   }
   #yt-iframe { width: 100%; height: 100%; border: none; display: block; }
 
-  /* Tap catcher — above iframe, catches taps when controls hidden */
+  /* Tap catcher — above iframe, invisible, catches taps when controls hidden */
   #tap-catcher {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 2;
-    background: transparent;
+    z-index: 2; background: transparent;
   }
   #tap-catcher.off { display: none; }
 
-  /* Controls overlay — above tap catcher */
+  /* Controls overlay */
   #controls-overlay {
     position: absolute;
     top: 0; left: 0; width: 100%;
     z-index: 3;
     padding: 10px 14px;
     padding-top: max(10px, env(safe-area-inset-top));
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: flex; align-items: center; gap: 10px;
     background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
     transition: opacity 0.4s ease;
   }
   #controls-overlay.hidden { opacity: 0; pointer-events: none; }
-
   #controls-overlay button {
     background: rgba(0,0,0,0.6);
     border: 1px solid rgba(255,255,255,0.2);
@@ -125,48 +114,64 @@
   #controls-overlay button.on { background: var(--red); border-color: var(--red); }
   .spacer { flex: 1; }
 
-  /* ── SWIPE HINT OVERLAY ── */
-  /* Shown after fullscreen button tap — instructs user to swipe down once */
-  #swipe-hint {
+  /* ── SWIPE-TO-FULLSCREEN PHASE ──
+     Shown instead of player while waiting for user to swipe up.
+     Has a REAL scrollable area behind a pointer-events:none hint.
+  */
+  #swipe-phase {
     display: none;
     position: fixed;
-    inset: 0; z-index: 200;
-    background: rgba(0,0,0,0.82);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 100;
+    background: #000;
+  }
+  #swipe-phase.show { display: block; }
+
+  /* Real scrollable div — receives the user's swipe */
+  #swipe-scroll {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
+  }
+  /* Tall enough that there's plenty of scroll room */
+  #swipe-scroll-inner {
+    height: 3000px;
+    width: 100%;
+    background: transparent;
+  }
+
+  /* Hint text — floats above scroll area, touch-transparent */
+  #swipe-hint-text {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2;
+    pointer-events: none; /* passes all touches to #swipe-scroll below */
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: 20px;
     text-align: center;
     padding: 32px;
-  }
-  #swipe-hint.show { display: flex; }
-
-  .hint-icon {
-    font-size: 48px;
-    animation: swipeAnim 1.2s ease-in-out infinite;
-  }
-  @keyframes swipeAnim {
-    0%   { transform: translateY(-8px); opacity: 0.4; }
-    50%  { transform: translateY(8px);  opacity: 1; }
-    100% { transform: translateY(-8px); opacity: 0.4; }
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
-  .hint-title {
-    font-size: 20px; font-weight: 700; color: #fff;
-    letter-spacing: -0.02em;
+  .hint-arrow {
+    font-size: 40px;
+    animation: swipeUp 1.4s ease-in-out infinite;
   }
-  .hint-body {
-    font-size: 14px; color: rgba(255,255,255,0.6);
-    line-height: 1.6; max-width: 260px;
+  @keyframes swipeUp {
+    0%   { transform: translateY(10px); opacity: 0.3; }
+    50%  { transform: translateY(-10px); opacity: 1; }
+    100% { transform: translateY(10px); opacity: 0.3; }
   }
-  .hint-note {
-    font-size: 11px; color: rgba(255,255,255,0.35);
-    line-height: 1.5; max-width: 240px;
-  }
-
-  /* visualViewport-aware sizing applied via JS */
+  .hint-title { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+  .hint-body { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; max-width: 260px; }
+  .hint-sub { font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.5; max-width: 240px; }
 </style>
 </head>
 <body>
@@ -180,20 +185,28 @@
   <div class="input-wrap">
     <input type="text" id="url-input" placeholder="Paste YouTube URL or video ID"
       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-    <div class="error-msg" id="error-msg">Couldn't find a YouTube video in that URL. Try pasting the full link.</div>
+    <div class="error-msg" id="error-msg">Couldn't find a YouTube video. Try pasting the full link.</div>
     <button class="go" onclick="loadVideo()">Watch →</button>
   </div>
-  <p class="hint">Works with youtube.com links, youtu.be links,<br>playlists, and bare video IDs</p>
+  <p class="hint">Works with youtube.com, youtu.be, playlists, and bare video IDs</p>
 </div>
 
-<!-- Swipe hint shown after ⛶ tap -->
-<div id="swipe-hint">
-  <div class="hint-icon">👇</div>
-  <div class="hint-title">One swipe to go fullscreen</div>
-  <div class="hint-body">Swipe down on the screen to hide Brave's toolbar, then we'll lock it in place.</div>
-  <div class="hint-note">You only need to do this once each time you rotate.</div>
+<!-- Swipe phase: shown while waiting for user to collapse chrome -->
+<div id="swipe-phase">
+  <!-- Real scrollable surface — receives actual finger swipes -->
+  <div id="swipe-scroll">
+    <div id="swipe-scroll-inner"></div>
+  </div>
+  <!-- Hint floats above, touch-transparent so swipes pass through -->
+  <div id="swipe-hint-text">
+    <div class="hint-arrow">☝️</div>
+    <div class="hint-title">Swipe up to go fullscreen</div>
+    <div class="hint-body">Swipe up on this screen to hide Brave's toolbar — we'll lock it and go fullscreen automatically.</div>
+    <div class="hint-sub">Only needed once each time you rotate.</div>
+  </div>
 </div>
 
+<!-- Player -->
 <div id="player-screen">
   <div id="iframe-layer">
     <iframe id="yt-iframe" allow="autoplay; fullscreen" allowfullscreen></iframe>
@@ -214,7 +227,7 @@
   let chromeWatcher = null;
   const vv = window.visualViewport;
 
-  // ── VISUAL VIEWPORT: always size player to true visible area ──
+  // ── VISUAL VIEWPORT ──
   function applyViewportSize() {
     const ps = document.getElementById('player-screen');
     if (!ps.classList.contains('active')) return;
@@ -226,19 +239,18 @@
   if (vv) vv.addEventListener('resize', applyViewportSize);
   window.addEventListener('resize', applyViewportSize);
 
-  // ── CONTROLS: fade after 2.5s, tap-catcher brings back ──
+  // ── CONTROLS FADE ──
   function showControls() {
     const ov = document.getElementById('controls-overlay');
     const tc = document.getElementById('tap-catcher');
     ov.classList.remove('hidden');
-    tc.classList.add('off'); // disable tap-catcher so buttons are tappable
+    tc.classList.add('off');
     clearTimeout(fadeTimer);
     fadeTimer = setTimeout(() => {
       ov.classList.add('hidden');
-      tc.classList.remove('off'); // re-enable tap-catcher
+      tc.classList.remove('off');
     }, 2500);
   }
-
   document.getElementById('tap-catcher').addEventListener('click', showControls);
 
   // ── URL PARSING ──
@@ -276,7 +288,6 @@
     err.classList.remove('show');
     const { videoId, listId } = extractIds(raw);
     if (!videoId && !listId) { err.classList.add('show'); return; }
-
     ccOn = true;
     document.getElementById('yt-iframe').src = buildSrc(videoId, listId, ccOn);
     document.getElementById('cc-btn').classList.add('on');
@@ -291,12 +302,12 @@
     isFullscreen = false;
     updateFsBtn();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    document.getElementById('swipe-phase').classList.remove('show');
     document.getElementById('player-screen').classList.remove('active');
     document.getElementById('player-screen').style.height = '';
     document.getElementById('player-screen').style.top = '';
     document.getElementById('home').style.display = '';
     document.getElementById('yt-iframe').src = '';
-    document.getElementById('swipe-hint').classList.remove('show');
   }
 
   function toggleCC() {
@@ -321,27 +332,28 @@
       }
     } catch(e) {}
 
-    // 2. Wait for orientation to physically settle
+    // 2. Wait for rotation to physically complete
     await waitForOrientation();
 
-    // 3. Show swipe hint — wait for user to swipe which collapses chrome
-    showSwipeHint();
-  }
+    // 3. Reset swipe-scroll position so user has full scroll room
+    const ss = document.getElementById('swipe-scroll');
+    ss.scrollTop = 0;
 
-  function showSwipeHint() {
-    const hint = document.getElementById('swipe-hint');
-    hint.classList.add('show');
+    // 4. Show swipe phase (real scrollable surface + hint text)
+    document.getElementById('swipe-phase').classList.add('show');
 
-    // Watch visualViewport — when height grows, chrome collapsed, user swiped
+    // 5. Watch visualViewport for chrome collapse
     const startH = vv ? vv.height : window.innerHeight;
-
+    stopChromeWatcher();
     chromeWatcher = setInterval(() => {
       const nowH = vv ? vv.height : window.innerHeight;
       if (nowH > startH + 10) {
-        // Chrome collapsed!
-        clearInterval(chromeWatcher);
-        hint.classList.remove('show');
-        onChromeCollapsed();
+        stopChromeWatcher();
+        document.getElementById('swipe-phase').classList.remove('show');
+        applyViewportSize();
+        isFullscreen = true;
+        updateFsBtn();
+        showControls();
       }
     }, 80);
   }
@@ -350,21 +362,12 @@
     if (chromeWatcher) { clearInterval(chromeWatcher); chromeWatcher = null; }
   }
 
-  function onChromeCollapsed() {
-    // Resize player to now-expanded viewport and lock in fullscreen state
-    applyViewportSize();
-    isFullscreen = true;
-    updateFsBtn();
-    showControls();
-  }
-
   function exitFullscreen() {
     stopChromeWatcher();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    document.getElementById('swipe-phase').classList.remove('show');
     isFullscreen = false;
     updateFsBtn();
-    document.getElementById('swipe-hint').classList.remove('show');
-    // Reset to full fixed size — chrome may reappear, visualViewport handles it
     document.getElementById('player-screen').style.height = '';
     document.getElementById('player-screen').style.top = '';
     applyViewportSize();
@@ -375,7 +378,6 @@
     document.getElementById('fs-btn').textContent = isFullscreen ? '✕FS' : '⛶';
   }
 
-  // Wait for orientationchange to fire (rotation physically complete)
   function waitForOrientation() {
     return new Promise(resolve => {
       if (screen.orientation && screen.orientation.type.includes('landscape')) return resolve();
@@ -386,11 +388,11 @@
       };
       if (screen.orientation) screen.orientation.addEventListener('change', handler);
       else window.addEventListener('orientationchange', handler);
-      setTimeout(resolve, 1500); // safety cap
+      setTimeout(resolve, 1500);
     });
   }
 
-  // ── PULL-TO-REFRESH: block on home ──
+  // Pull-to-refresh block on home
   let lastTouchY = 0;
   document.addEventListener('touchstart', e => { lastTouchY = e.touches[0].clientY; }, { passive: true });
   document.addEventListener('touchmove', e => {
