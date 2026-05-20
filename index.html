@@ -134,12 +134,33 @@
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
     z-index: 1;
+    /* VISIBLE for testing — bright background so we can confirm scrollability */
+    background: #1a1a2e;
+  }
+  #swipe-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  #swipe-scroll::-webkit-scrollbar-track {
+    background: #333;
+  }
+  #swipe-scroll::-webkit-scrollbar-thumb {
+    background: var(--red);
+    border-radius: 4px;
   }
   /* Tall enough that there's plenty of scroll room */
   #swipe-scroll-inner {
     height: 3000px;
     width: 100%;
-    background: transparent;
+    /* Gradient so user can see they're scrolling */
+    background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 60px;
+    gap: 40px;
+    color: rgba(255,255,255,0.15);
+    font-size: 13px;
+    user-select: none;
   }
 
   /* Hint text — floats above scroll area, touch-transparent */
@@ -155,9 +176,8 @@
     gap: 20px;
     text-align: center;
     padding: 32px;
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    /* Semi-transparent so scroll content is visible behind */
+    background: rgba(0,0,0,0.5);
   }
 
   .hint-arrow {
@@ -195,7 +215,14 @@
 <div id="swipe-phase">
   <!-- Real scrollable surface — receives actual finger swipes -->
   <div id="swipe-scroll">
-    <div id="swipe-scroll-inner"></div>
+    <div id="swipe-scroll-inner">
+    <span>▲ swipe up ▲</span>
+    <span>— 500px —</span>
+    <span>— 1000px —</span>
+    <span>— 1500px —</span>
+    <span>— 2000px —</span>
+    <span>— 2500px —</span>
+  </div>
   </div>
   <!-- Hint floats above, touch-transparent so swipes pass through -->
   <div id="swipe-hint-text">
