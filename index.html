@@ -16,19 +16,16 @@
     --muted: #555;
   }
 
-  body {
+  html, body {
+    height: 100%;
     background: var(--dark);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
   }
 
-  /* ── HOME SCREEN ── */
+  /* ── HOME ── */
   #home {
-    flex: 1;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -116,94 +113,6 @@
     line-height: 1.6;
   }
 
-  /* ── PLAYER SCREEN ── */
-  #player-screen {
-    display: none;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    background: #000;
-    position: relative;
-  }
-
-  #player-screen.active {
-    display: flex;
-  }
-
-  /* Top bar */
-  .top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    padding-top: max(10px, env(safe-area-inset-top));
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    z-index: 10;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  .back-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: #fff;
-    border-radius: 8px;
-    padding: 7px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .back-btn:active { opacity: 0.6; }
-
-  .video-title {
-    font-size: 12px;
-    color: rgba(255,255,255,0.6);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    text-align: center;
-  }
-
-  .cc-toggle {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: #fff;
-    border-radius: 8px;
-    padding: 7px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-  }
-
-  .cc-toggle.on {
-    background: var(--red);
-  }
-
-  /* iframe fills the rest */
-  .iframe-wrap {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
-
-  #yt-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: block;
-  }
-
-  /* error */
   .error-msg {
     display: none;
     background: #1a0000;
@@ -212,13 +121,118 @@
     padding: 14px 18px;
     font-size: 13px;
     color: #ff6666;
-    width: 100%;
-    max-width: 420px;
     text-align: center;
     line-height: 1.5;
   }
-
   .error-msg.show { display: block; }
+
+  /* ── PLAYER SCREEN ── */
+  #player-screen {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    height: 100dvh;
+    background: #000;
+  }
+
+  #player-screen.active { display: flex; }
+
+  /* top bar */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    padding-top: max(10px, env(safe-area-inset-top));
+    background: #000;
+    gap: 10px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .top-bar button {
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .top-bar button:active { opacity: 0.6; }
+
+  .top-bar button.on { background: var(--red); }
+
+  .video-title {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    text-align: center;
+  }
+
+  /* iframe wrapper — fills ALL remaining space, no aspect ratio box */
+  .iframe-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    min-height: 0; /* critical for flex children */
+  }
+
+  #yt-iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* fullscreen overlay mode */
+  #player-screen.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    height: 100%;
+    width: 100%;
+  }
+
+  /* hide top bar in fullscreen to maximise video */
+  #player-screen.fullscreen .top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  #player-screen.fullscreen .top-bar.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  #player-screen.fullscreen .iframe-wrap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* fullscreen button style */
+  #fs-btn {
+    font-size: 16px;
+    padding: 8px 12px !important;
+  }
 </style>
 </head>
 <body>
@@ -228,7 +242,7 @@
   <div class="logo">
     <div class="logo-icon">▶</div>
     <h1>YTFS4U</h1>
-    <p>Watch YouTube with captions in a real fullscreen — no subtitles disappearing.</p>
+    <p>Watch YouTube with captions in real fullscreen — no subtitles disappearing.</p>
   </div>
 
   <div class="input-wrap">
@@ -241,7 +255,7 @@
       autocapitalize="off"
       spellcheck="false"
     />
-    <div class="error-msg" id="error-msg">Couldn't find a YouTube video in that URL. Try pasting the full link from the YouTube app or browser.</div>
+    <div class="error-msg" id="error-msg">Couldn't find a YouTube video in that URL. Try pasting the full link.</div>
     <button class="go" onclick="loadVideo()">Watch →</button>
   </div>
 
@@ -250,12 +264,13 @@
 
 <!-- PLAYER -->
 <div id="player-screen">
-  <div class="top-bar">
-    <button class="back-btn" onclick="goHome()">← Back</button>
+  <div class="top-bar" id="top-bar">
+    <button onclick="goHome()">← Back</button>
     <span class="video-title" id="video-title"></span>
-    <button class="cc-toggle on" id="cc-btn" onclick="toggleCC()">CC</button>
+    <button id="cc-btn" class="on" onclick="toggleCC()">CC</button>
+    <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
   </div>
-  <div class="iframe-wrap">
+  <div class="iframe-wrap" id="iframe-wrap">
     <iframe
       id="yt-iframe"
       allow="autoplay; fullscreen"
@@ -266,39 +281,22 @@
 
 <script>
   let ccOn = true;
-  let currentVideoId = '';
-  let currentListId = '';
+  let isFullscreen = false;
+  let barTimeout;
 
   function extractIds(raw) {
     raw = raw.trim();
-
-    // bare video ID (11 chars alphanumeric + - _)
-    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) {
-      return { videoId: raw, listId: null };
-    }
-
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return { videoId: raw, listId: null };
     try {
-      // handle youtu.be/ID
       if (raw.includes('youtu.be/')) {
         if (!raw.startsWith('http')) raw = 'https://' + raw;
         const u = new URL(raw);
-        const videoId = u.pathname.slice(1).split('?')[0];
-        const listId = u.searchParams.get('list');
-        return { videoId, listId };
+        return { videoId: u.pathname.slice(1).split('?')[0], listId: u.searchParams.get('list') };
       }
-
       if (!raw.startsWith('http')) raw = 'https://' + raw;
       const u = new URL(raw);
-      const videoId = u.searchParams.get('v');
-      const listId = u.searchParams.get('list');
-
-      // playlist with no specific video
-      if (!videoId && listId) return { videoId: null, listId };
-
-      return { videoId, listId };
-    } catch {
-      return { videoId: null, listId: null };
-    }
+      return { videoId: u.searchParams.get('v'), listId: u.searchParams.get('list') };
+    } catch { return { videoId: null, listId: null }; }
   }
 
   function buildSrc(videoId, listId, cc) {
@@ -309,16 +307,10 @@
       cc_load_policy: cc ? '1' : '0',
       cc_lang_pref: 'en',
     });
-
-    if (listId) {
-      params.set('list', listId);
-      params.set('listType', 'playlist');
-    }
-
+    if (listId) { params.set('list', listId); params.set('listType', 'playlist'); }
     const base = videoId
       ? `https://www.youtube-nocookie.com/embed/${videoId}`
       : `https://www.youtube-nocookie.com/embed/videoseries`;
-
     return `${base}?${params.toString()}`;
   }
 
@@ -326,69 +318,112 @@
     const raw = document.getElementById('url-input').value;
     const err = document.getElementById('error-msg');
     err.classList.remove('show');
-
     const { videoId, listId } = extractIds(raw);
+    if (!videoId && !listId) { err.classList.add('show'); return; }
 
-    if (!videoId && !listId) {
-      err.classList.add('show');
-      return;
-    }
-
-    currentVideoId = videoId || '';
-    currentListId = listId || '';
     ccOn = true;
-
-    const iframe = document.getElementById('yt-iframe');
-    iframe.src = buildSrc(currentVideoId, currentListId, ccOn);
-
+    document.getElementById('yt-iframe').src = buildSrc(videoId, listId, ccOn);
     document.getElementById('cc-btn').classList.add('on');
     document.getElementById('video-title').textContent = '';
-
     document.getElementById('home').style.display = 'none';
     document.getElementById('player-screen').classList.add('active');
+  }
 
-    // Try to lock orientation to landscape
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {});
-    }
+  function goHome() {
+    exitFullscreen();
+    document.getElementById('player-screen').classList.remove('active');
+    document.getElementById('home').style.display = '';
+    document.getElementById('yt-iframe').src = '';
   }
 
   function toggleCC() {
     ccOn = !ccOn;
-    const btn = document.getElementById('cc-btn');
-    btn.classList.toggle('on', ccOn);
-
-    // Reload iframe with updated cc param
+    document.getElementById('cc-btn').classList.toggle('on', ccOn);
     const iframe = document.getElementById('yt-iframe');
-    const currentSrc = iframe.src;
-    const url = new URL(currentSrc);
+    const url = new URL(iframe.src);
     url.searchParams.set('cc_load_policy', ccOn ? '1' : '0');
     url.searchParams.set('autoplay', '1');
     iframe.src = url.toString();
   }
 
-  function goHome() {
-    document.getElementById('player-screen').classList.remove('active');
-    document.getElementById('home').style.display = '';
-    document.getElementById('yt-iframe').src = '';
+  function toggleFullscreen() {
+    if (isFullscreen) exitFullscreen();
+    else enterFullscreen();
+  }
 
-    if (screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
+  function enterFullscreen() {
+    const ps = document.getElementById('player-screen');
+
+    // Try real requestFullscreen on our div first (keeps captions, works on iPad)
+    const el = ps;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().then(() => { isFullscreen = true; updateFsBtn(); }).catch(() => fakeFull());
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+      isFullscreen = true; updateFsBtn();
+    } else {
+      fakeFull();
+    }
+
+    // Lock landscape
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
     }
   }
 
-  // Allow pressing Enter on input
+  function fakeFull() {
+    // Fallback: CSS fixed overlay (iPhone — requestFullscreen not supported)
+    const ps = document.getElementById('player-screen');
+    ps.classList.add('fullscreen');
+    isFullscreen = true;
+    updateFsBtn();
+
+    // Tap to show/hide bar
+    ps.addEventListener('click', handleFsTap);
+  }
+
+  function handleFsTap(e) {
+    if (e.target.closest('button')) return;
+    const bar = document.getElementById('top-bar');
+    bar.classList.add('visible');
+    clearTimeout(barTimeout);
+    barTimeout = setTimeout(() => bar.classList.remove('visible'), 2500);
+  }
+
+  function exitFullscreen() {
+    const ps = document.getElementById('player-screen');
+    ps.classList.remove('fullscreen');
+    document.getElementById('top-bar').classList.remove('visible');
+    ps.removeEventListener('click', handleFsTap);
+
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    isFullscreen = false;
+    updateFsBtn();
+  }
+
+  function updateFsBtn() {
+    document.getElementById('fs-btn').textContent = isFullscreen ? '✕FS' : '⛶';
+  }
+
+  // Listen for native fullscreen exit (e.g. user presses home)
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) { isFullscreen = false; updateFsBtn(); }
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    if (!document.webkitFullscreenElement) { isFullscreen = false; updateFsBtn(); }
+  });
+
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') loadVideo();
   });
 
-  // Pre-fill from ?v= or ?url= query param (for future bookmarklet integration)
   const urlParams = new URLSearchParams(window.location.search);
   const prefill = urlParams.get('url') || urlParams.get('v');
-  if (prefill) {
-    document.getElementById('url-input').value = prefill;
-    loadVideo();
-  }
+  if (prefill) { document.getElementById('url-input').value = prefill; loadVideo(); }
 </script>
 </body>
 </html>
