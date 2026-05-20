@@ -70,7 +70,7 @@
   }
   .error-msg.show { display: block; }
 
-  /* ── PLAYER CONTAINER ── */
+  /* ── PLAYER ── */
   #player-screen {
     display: none;
     position: fixed;
@@ -80,105 +80,93 @@
   }
   #player-screen.active { display: block; }
 
-  /* LAYER 1 (bottom): transparent scrollable div — only used for chrome collapse automation */
-  #scroll-layer {
-    position: absolute;
-    top: 0; left: 0; width: 100%;
-    height: 100%;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    z-index: 1;
-    /* invisible but scrollable */
-    background: transparent;
-  }
-  /* tall inner content gives scroll-layer room to scroll */
-  #scroll-layer-inner {
-    height: 3000px;
-    width: 100%;
-  }
-
-  /* LAYER 2: iframe fills entire screen */
+  /* iframe fills entire player */
   #iframe-layer {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 2;
+    z-index: 1;
   }
-  #yt-iframe {
-    width: 100%; height: 100%;
-    border: none; display: block;
-  }
+  #yt-iframe { width: 100%; height: 100%; border: none; display: block; }
 
-  /* LAYER 3 (top): overlay controls — fades out, reappears on tap */
+  /* Tap catcher — above iframe, catches taps when controls hidden */
+  #tap-catcher {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2;
+    background: transparent;
+  }
+  #tap-catcher.off { display: none; }
+
+  /* Controls overlay — above tap catcher */
   #controls-overlay {
     position: absolute;
     top: 0; left: 0; width: 100%;
-    z-index: 4;
+    z-index: 3;
     padding: 10px 14px;
     padding-top: max(10px, env(safe-area-inset-top));
     display: flex;
     align-items: center;
     gap: 10px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
     transition: opacity 0.4s ease;
-    pointer-events: all;
   }
-  #controls-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
+  #controls-overlay.hidden { opacity: 0; pointer-events: none; }
 
   #controls-overlay button {
     background: rgba(0,0,0,0.6);
     border: 1px solid rgba(255,255,255,0.2);
-    color: #fff;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    white-space: nowrap;
-    flex-shrink: 0;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    color: #fff; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    white-space: nowrap; flex-shrink: 0;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
   #controls-overlay button:active { opacity: 0.6; }
   #controls-overlay button.on { background: var(--red); border-color: var(--red); }
-
   .spacer { flex: 1; }
 
-  /* Tap catcher: invisible layer above iframe to catch taps */
-  #tap-catcher {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 3;
-    background: transparent;
-    /* only active when controls are hidden */
-  }
-  #tap-catcher.hidden { display: none; }
-
-  /* Fullscreen transition overlay */
-  #fs-overlay {
+  /* ── SWIPE HINT OVERLAY ── */
+  /* Shown after fullscreen button tap — instructs user to swipe down once */
+  #swipe-hint {
     display: none;
     position: fixed;
     inset: 0; z-index: 200;
-    background: #000;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    color: rgba(255,255,255,0.6);
-    font-size: 13px;
+    gap: 24px;
+    text-align: center;
+    padding: 32px;
   }
-  #fs-overlay.show { display: flex; }
-  .spinner {
-    width: 32px; height: 32px;
-    border: 3px solid rgba(255,255,255,0.15);
-    border-top-color: var(--red);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  #swipe-hint.show { display: flex; }
+
+  .hint-icon {
+    font-size: 48px;
+    animation: swipeAnim 1.2s ease-in-out infinite;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes swipeAnim {
+    0%   { transform: translateY(-8px); opacity: 0.4; }
+    50%  { transform: translateY(8px);  opacity: 1; }
+    100% { transform: translateY(-8px); opacity: 0.4; }
+  }
+
+  .hint-title {
+    font-size: 20px; font-weight: 700; color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .hint-body {
+    font-size: 14px; color: rgba(255,255,255,0.6);
+    line-height: 1.6; max-width: 260px;
+  }
+  .hint-note {
+    font-size: 11px; color: rgba(255,255,255,0.35);
+    line-height: 1.5; max-width: 240px;
+  }
+
+  /* visualViewport-aware sizing applied via JS */
 </style>
 </head>
 <body>
@@ -198,26 +186,19 @@
   <p class="hint">Works with youtube.com links, youtu.be links,<br>playlists, and bare video IDs</p>
 </div>
 
-<div id="fs-overlay">
-  <div class="spinner"></div>
-  <span>Going fullscreen…</span>
+<!-- Swipe hint shown after ⛶ tap -->
+<div id="swipe-hint">
+  <div class="hint-icon">👇</div>
+  <div class="hint-title">One swipe to go fullscreen</div>
+  <div class="hint-body">Swipe down on the screen to hide Brave's toolbar, then we'll lock it in place.</div>
+  <div class="hint-note">You only need to do this once each time you rotate.</div>
 </div>
 
 <div id="player-screen">
-  <!-- Layer 1: scrollable (behind everything, for chrome collapse) -->
-  <div id="scroll-layer">
-    <div id="scroll-layer-inner"></div>
-  </div>
-
-  <!-- Layer 2: YouTube iframe -->
   <div id="iframe-layer">
     <iframe id="yt-iframe" allow="autoplay; fullscreen" allowfullscreen></iframe>
   </div>
-
-  <!-- Layer 2.5: transparent tap catcher — above iframe, triggers controls -->
   <div id="tap-catcher"></div>
-
-  <!-- Layer 3: controls overlay (fades, reappears on tap) -->
   <div id="controls-overlay">
     <button onclick="goHome()">← Back</button>
     <div class="spacer"></div>
@@ -230,25 +211,10 @@
   let ccOn = true;
   let isFullscreen = false;
   let fadeTimer = null;
+  let chromeWatcher = null;
   const vv = window.visualViewport;
 
-  // ── CONTROLS OVERLAY: fade out after 2.5s, reappear on tap ──
-  function showControls() {
-    const ov = document.getElementById('controls-overlay');
-    const tc = document.getElementById('tap-catcher');
-    ov.classList.remove('hidden');
-    tc.classList.add('hidden'); // hide tap-catcher while controls visible (so buttons work)
-    clearTimeout(fadeTimer);
-    fadeTimer = setTimeout(() => {
-      ov.classList.add('hidden');
-      tc.classList.remove('hidden'); // re-enable tap-catcher when controls fade
-    }, 2500);
-  }
-
-  // Tap-catcher sits above iframe and catches taps when controls are hidden
-  document.getElementById('tap-catcher').addEventListener('click', showControls);
-
-  // ── VISUAL VIEWPORT sizing ──
+  // ── VISUAL VIEWPORT: always size player to true visible area ──
   function applyViewportSize() {
     const ps = document.getElementById('player-screen');
     if (!ps.classList.contains('active')) return;
@@ -257,8 +223,23 @@
     ps.style.height = h + 'px';
     ps.style.top = t + 'px';
   }
-  if (vv) { vv.addEventListener('resize', applyViewportSize); }
+  if (vv) vv.addEventListener('resize', applyViewportSize);
   window.addEventListener('resize', applyViewportSize);
+
+  // ── CONTROLS: fade after 2.5s, tap-catcher brings back ──
+  function showControls() {
+    const ov = document.getElementById('controls-overlay');
+    const tc = document.getElementById('tap-catcher');
+    ov.classList.remove('hidden');
+    tc.classList.add('off'); // disable tap-catcher so buttons are tappable
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      ov.classList.add('hidden');
+      tc.classList.remove('off'); // re-enable tap-catcher
+    }, 2500);
+  }
+
+  document.getElementById('tap-catcher').addEventListener('click', showControls);
 
   // ── URL PARSING ──
   function extractIds(raw) {
@@ -299,20 +280,23 @@
     ccOn = true;
     document.getElementById('yt-iframe').src = buildSrc(videoId, listId, ccOn);
     document.getElementById('cc-btn').classList.add('on');
+    document.getElementById('home').style.display = 'none';
     document.getElementById('player-screen').classList.add('active');
     applyViewportSize();
     showControls();
   }
 
   function goHome() {
+    stopChromeWatcher();
     isFullscreen = false;
     updateFsBtn();
-    unlockScrollLayer();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
     document.getElementById('player-screen').classList.remove('active');
     document.getElementById('player-screen').style.height = '';
     document.getElementById('player-screen').style.top = '';
+    document.getElementById('home').style.display = '';
     document.getElementById('yt-iframe').src = '';
+    document.getElementById('swipe-hint').classList.remove('show');
   }
 
   function toggleCC() {
@@ -330,134 +314,59 @@
   async function toggleFullscreen() {
     if (isFullscreen) { exitFullscreen(); return; }
 
-    const overlay = document.getElementById('fs-overlay');
-    overlay.classList.add('show');
-
-    // 1. Try requestFullscreen on player div (keeps our DOM, captions intact)
-    const ps = document.getElementById('player-screen');
-    try {
-      if (ps.requestFullscreen) await ps.requestFullscreen();
-      else if (ps.webkitRequestFullscreen) ps.webkitRequestFullscreen();
-    } catch(e) {}
-
-    // 2. Lock orientation to landscape
+    // 1. Lock orientation to landscape
     try {
       if (screen.orientation && screen.orientation.lock) {
         await screen.orientation.lock('landscape');
       }
     } catch(e) {}
 
-    // 3. Wait for orientation to physically complete
+    // 2. Wait for orientation to physically settle
     await waitForOrientation();
-    // 4. Wait for visualViewport to settle after chrome resets
-    await waitForViewportSettle();
 
-    // 5. Scroll the bottom scroll-layer to collapse Brave chrome
-    await collapseChrome();
+    // 3. Show swipe hint — wait for user to swipe which collapses chrome
+    showSwipeHint();
+  }
 
-    // 6. Lock scroll-layer so user can't bring chrome back
-    lockScrollLayer();
+  function showSwipeHint() {
+    const hint = document.getElementById('swipe-hint');
+    hint.classList.add('show');
 
-    // 7. Resize to full visualViewport
+    // Watch visualViewport — when height grows, chrome collapsed, user swiped
+    const startH = vv ? vv.height : window.innerHeight;
+
+    chromeWatcher = setInterval(() => {
+      const nowH = vv ? vv.height : window.innerHeight;
+      if (nowH > startH + 10) {
+        // Chrome collapsed!
+        clearInterval(chromeWatcher);
+        hint.classList.remove('show');
+        onChromeCollapsed();
+      }
+    }, 80);
+  }
+
+  function stopChromeWatcher() {
+    if (chromeWatcher) { clearInterval(chromeWatcher); chromeWatcher = null; }
+  }
+
+  function onChromeCollapsed() {
+    // Resize player to now-expanded viewport and lock in fullscreen state
     applyViewportSize();
-    overlay.classList.remove('show');
-
     isFullscreen = true;
     updateFsBtn();
     showControls();
   }
 
-  // Wait for orientationchange event (rotation physically done)
-  function waitForOrientation() {
-    return new Promise(resolve => {
-      // If orientation already matches landscape, resolve immediately
-      if (screen.orientation && screen.orientation.type.includes('landscape')) {
-        return resolve();
-      }
-      const handler = () => {
-        screen.orientation.removeEventListener('change', handler);
-        window.removeEventListener('orientationchange', handler);
-        resolve();
-      };
-      if (screen.orientation) {
-        screen.orientation.addEventListener('change', handler);
-      } else {
-        window.addEventListener('orientationchange', handler);
-      }
-      // Safety timeout — resolve after 1.5s regardless
-      setTimeout(resolve, 1500);
-    });
-  }
-
-  // Wait for visualViewport to stop changing (chrome has settled)
-  function waitForViewportSettle() {
-    return new Promise(resolve => {
-      if (!vv) return setTimeout(resolve, 300);
-      let timer;
-      const handler = () => {
-        clearTimeout(timer);
-        // Resolve 150ms after last resize event — viewport is stable
-        timer = setTimeout(() => {
-          vv.removeEventListener('resize', handler);
-          resolve();
-        }, 150);
-      };
-      vv.addEventListener('resize', handler);
-      // Safety: if no resize fires within 800ms, proceed anyway
-      setTimeout(() => {
-        vv.removeEventListener('resize', handler);
-        clearTimeout(timer);
-        resolve();
-      }, 800);
-    });
-  }
-
-  // Scroll the dedicated scroll-layer div (not window) — it sits behind the iframe
-  // and is scrollable independently, giving us a scrollable surface even under a fixed player
-  async function collapseChrome() {
-    const sl = document.getElementById('scroll-layer');
-    const startH = vv ? vv.height : window.innerHeight;
-    let lastH = startH;
-    let stableCount = 0;
-
-    for (let i = 0; i < 80; i++) {
-      sl.scrollTop += 6;
-      // Also try window scroll as fallback
-      window.scrollBy({ top: 6, behavior: 'instant' });
-      await sleep(25);
-
-      const nowH = vv ? vv.height : window.innerHeight;
-      if (nowH > lastH) {
-        lastH = nowH;
-        stableCount = 0;
-      } else {
-        stableCount++;
-        if (stableCount >= 6 && nowH > startH) break;
-        if (stableCount >= 20) break; // give up if no change after 20 stable checks
-      }
-    }
-  }
-
-  function lockScrollLayer() {
-    const sl = document.getElementById('scroll-layer');
-    sl.style.overflowY = 'hidden';
-    sl.style.pointerEvents = 'none';
-  }
-
-  function unlockScrollLayer() {
-    const sl = document.getElementById('scroll-layer');
-    sl.style.overflowY = 'scroll';
-    sl.style.pointerEvents = '';
-  }
-
   function exitFullscreen() {
-    unlockScrollLayer();
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
-    }
+    stopChromeWatcher();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
     isFullscreen = false;
     updateFsBtn();
+    document.getElementById('swipe-hint').classList.remove('show');
+    // Reset to full fixed size — chrome may reappear, visualViewport handles it
+    document.getElementById('player-screen').style.height = '';
+    document.getElementById('player-screen').style.top = '';
     applyViewportSize();
     showControls();
   }
@@ -466,21 +375,27 @@
     document.getElementById('fs-btn').textContent = isFullscreen ? '✕FS' : '⛶';
   }
 
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) { isFullscreen = false; updateFsBtn(); }
-  });
-  document.addEventListener('webkitfullscreenchange', () => {
-    if (!document.webkitFullscreenElement) { isFullscreen = false; updateFsBtn(); }
-  });
+  // Wait for orientationchange to fire (rotation physically complete)
+  function waitForOrientation() {
+    return new Promise(resolve => {
+      if (screen.orientation && screen.orientation.type.includes('landscape')) return resolve();
+      const handler = () => {
+        if (screen.orientation) screen.orientation.removeEventListener('change', handler);
+        window.removeEventListener('orientationchange', handler);
+        resolve();
+      };
+      if (screen.orientation) screen.orientation.addEventListener('change', handler);
+      else window.addEventListener('orientationchange', handler);
+      setTimeout(resolve, 1500); // safety cap
+    });
+  }
 
-  // ── PULL-TO-REFRESH: block on home screen ──
+  // ── PULL-TO-REFRESH: block on home ──
   let lastTouchY = 0;
   document.addEventListener('touchstart', e => { lastTouchY = e.touches[0].clientY; }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (window.scrollY <= 0 && e.touches[0].clientY > lastTouchY) e.preventDefault();
   }, { passive: false });
-
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') loadVideo();
