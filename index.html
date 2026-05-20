@@ -329,6 +329,8 @@
     isFullscreen = false;
     updateFsBtn();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    document.body.classList.remove('fs-active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
     document.getElementById('swipe-phase').classList.remove('show');
     document.getElementById('player-screen').classList.remove('active');
     document.getElementById('player-screen').style.height = '';
@@ -362,27 +364,13 @@
     // 2. Wait for rotation to physically complete
     await waitForOrientation();
 
-    // 3. Reset swipe-scroll position so user has full scroll room
-    const ss = document.getElementById('swipe-scroll');
-    ss.scrollTop = 0;
+    // 3. Make base page tall and scrollable so swiping on video hides chrome
+    document.body.classList.add('fs-active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
-    // 4. Show swipe phase (real scrollable surface + hint text)
-    document.getElementById('swipe-phase').classList.add('show');
-
-    // 5. Watch visualViewport for chrome collapse
-    const startH = vv ? vv.height : window.innerHeight;
-    stopChromeWatcher();
-    chromeWatcher = setInterval(() => {
-      const nowH = vv ? vv.height : window.innerHeight;
-      if (nowH > startH + 10) {
-        stopChromeWatcher();
-        document.getElementById('swipe-phase').classList.remove('show');
-        applyViewportSize();
-        isFullscreen = true;
-        updateFsBtn();
-        showControls();
-      }
-    }, 80);
+    isFullscreen = true;
+    updateFsBtn();
+    showControls();
   }
 
   function stopChromeWatcher() {
@@ -391,7 +379,11 @@
 
   function exitFullscreen() {
     stopChromeWatcher();
+    document.body.classList.remove('fs-active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    document.body.classList.remove('fs-active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
     document.getElementById('swipe-phase').classList.remove('show');
     isFullscreen = false;
     updateFsBtn();
