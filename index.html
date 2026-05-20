@@ -21,9 +21,9 @@
     background: var(--dark);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
   }
 
-  /* ── HOME ── */
   #home {
     height: 100%;
     display: flex;
@@ -43,8 +43,7 @@
   }
 
   .logo-icon {
-    width: 56px;
-    height: 56px;
+    width: 56px; height: 56px;
     background: var(--red);
     border-radius: 14px;
     display: flex;
@@ -53,25 +52,12 @@
     font-size: 26px;
   }
 
-  .logo h1 {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-  }
-
-  .logo p {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.5;
-    max-width: 260px;
-  }
+  .logo h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+  .logo p { font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 260px; }
 
   .input-wrap {
-    width: 100%;
-    max-width: 420px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    width: 100%; max-width: 420px;
+    display: flex; flex-direction: column; gap: 10px;
   }
 
   input[type="text"] {
@@ -86,7 +72,6 @@
     transition: border-color 0.15s;
     -webkit-appearance: none;
   }
-
   input[type="text"]::placeholder { color: var(--muted); }
   input[type="text"]:focus { border-color: var(--red); }
 
@@ -100,18 +85,11 @@
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
     -webkit-tap-highlight-color: transparent;
   }
+  button.go:active { opacity: 0.8; }
 
-  button.go:active { opacity: 0.8; transform: scale(0.98); }
-
-  .hint {
-    font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-    line-height: 1.6;
-  }
+  .hint { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
 
   .error-msg {
     display: none;
@@ -126,18 +104,17 @@
   }
   .error-msg.show { display: block; }
 
-  /* ── PLAYER SCREEN ── */
+  /* ── PLAYER ── */
   #player-screen {
     display: none;
     flex-direction: column;
-    height: 100%;
-    height: 100dvh;
+    position: fixed;
+    inset: 0;
     background: #000;
+    z-index: 100;
   }
-
   #player-screen.active { display: flex; }
 
-  /* top bar */
   .top-bar {
     display: flex;
     align-items: center;
@@ -147,7 +124,6 @@
     background: #000;
     gap: 10px;
     flex-shrink: 0;
-    z-index: 10;
   }
 
   .top-bar button {
@@ -163,9 +139,7 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-
   .top-bar button:active { opacity: 0.6; }
-
   .top-bar button.on { background: var(--red); }
 
   .video-title {
@@ -178,91 +152,41 @@
     text-align: center;
   }
 
-  /* iframe wrapper — fills ALL remaining space, no aspect ratio box */
+  #fs-btn { font-size: 16px; padding: 8px 12px !important; }
+
   .iframe-wrap {
     flex: 1;
     position: relative;
     overflow: hidden;
     background: #000;
-    min-height: 0; /* critical for flex children */
+    min-height: 0;
   }
 
   #yt-iframe {
     position: absolute;
     top: 0; left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     border: none;
-  }
-
-  /* fullscreen overlay mode */
-  #player-screen.fullscreen {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    height: 100%;
-    width: 100%;
-  }
-
-  /* hide top bar in fullscreen to maximise video */
-  #player-screen.fullscreen .top-bar {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
-
-  #player-screen.fullscreen .top-bar.visible {
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  #player-screen.fullscreen .iframe-wrap {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* fullscreen button style */
-  #fs-btn {
-    font-size: 16px;
-    padding: 8px 12px !important;
   }
 </style>
 </head>
 <body>
 
-<!-- HOME -->
 <div id="home">
   <div class="logo">
     <div class="logo-icon">▶</div>
     <h1>YTFS4U</h1>
     <p>Watch YouTube with captions in real fullscreen — no subtitles disappearing.</p>
   </div>
-
   <div class="input-wrap">
-    <input
-      type="text"
-      id="url-input"
-      placeholder="Paste YouTube URL or video ID"
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-    />
+    <input type="text" id="url-input" placeholder="Paste YouTube URL or video ID"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
     <div class="error-msg" id="error-msg">Couldn't find a YouTube video in that URL. Try pasting the full link.</div>
     <button class="go" onclick="loadVideo()">Watch →</button>
   </div>
-
   <p class="hint">Works with youtube.com links, youtu.be links,<br>playlists, and bare video IDs</p>
 </div>
 
-<!-- PLAYER -->
 <div id="player-screen">
   <div class="top-bar" id="top-bar">
     <button onclick="goHome()">← Back</button>
@@ -270,12 +194,8 @@
     <button id="cc-btn" class="on" onclick="toggleCC()">CC</button>
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
   </div>
-  <div class="iframe-wrap" id="iframe-wrap">
-    <iframe
-      id="yt-iframe"
-      allow="autoplay; fullscreen"
-      allowfullscreen
-    ></iframe>
+  <div class="iframe-wrap">
+    <iframe id="yt-iframe" allow="autoplay; fullscreen" allowfullscreen></iframe>
   </div>
 </div>
 
@@ -301,11 +221,8 @@
 
   function buildSrc(videoId, listId, cc) {
     const params = new URLSearchParams({
-      autoplay: '1',
-      rel: '0',
-      modestbranding: '1',
-      cc_load_policy: cc ? '1' : '0',
-      cc_lang_pref: 'en',
+      autoplay: '1', rel: '0', modestbranding: '1',
+      cc_load_policy: cc ? '1' : '0', cc_lang_pref: 'en',
     });
     if (listId) { params.set('list', listId); params.set('listType', 'playlist'); }
     const base = videoId
@@ -320,19 +237,18 @@
     err.classList.remove('show');
     const { videoId, listId } = extractIds(raw);
     if (!videoId && !listId) { err.classList.add('show'); return; }
-
     ccOn = true;
     document.getElementById('yt-iframe').src = buildSrc(videoId, listId, ccOn);
     document.getElementById('cc-btn').classList.add('on');
-    document.getElementById('video-title').textContent = '';
-    document.getElementById('home').style.display = 'none';
     document.getElementById('player-screen').classList.add('active');
+    // Nudge Brave bar to collapse, then lock all scroll
+    setTimeout(nudgeAndLock, 400);
   }
 
   function goHome() {
     exitFullscreen();
+    unlockScroll();
     document.getElementById('player-screen').classList.remove('active');
-    document.getElementById('home').style.display = '';
     document.getElementById('yt-iframe').src = '';
   }
 
@@ -353,53 +269,22 @@
 
   function enterFullscreen() {
     const ps = document.getElementById('player-screen');
-
-    // Try real requestFullscreen on our div first (keeps captions, works on iPad)
-    const el = ps;
-    if (el.requestFullscreen) {
-      el.requestFullscreen().then(() => { isFullscreen = true; updateFsBtn(); }).catch(() => fakeFull());
-    } else if (el.webkitRequestFullscreen) {
-      el.webkitRequestFullscreen();
-      isFullscreen = true; updateFsBtn();
-    } else {
-      fakeFull();
+    if (ps.requestFullscreen) {
+      ps.requestFullscreen().catch(() => {});
+    } else if (ps.webkitRequestFullscreen) {
+      ps.webkitRequestFullscreen();
     }
-
-    // Lock landscape
     if (screen.orientation && screen.orientation.lock) {
       screen.orientation.lock('landscape').catch(() => {});
     }
-  }
-
-  function fakeFull() {
-    // Fallback: CSS fixed overlay (iPhone — requestFullscreen not supported)
-    const ps = document.getElementById('player-screen');
-    ps.classList.add('fullscreen');
     isFullscreen = true;
     updateFsBtn();
-
-    // Tap to show/hide bar
-    ps.addEventListener('click', handleFsTap);
-  }
-
-  function handleFsTap(e) {
-    if (e.target.closest('button')) return;
-    const bar = document.getElementById('top-bar');
-    bar.classList.add('visible');
-    clearTimeout(barTimeout);
-    barTimeout = setTimeout(() => bar.classList.remove('visible'), 2500);
   }
 
   function exitFullscreen() {
-    const ps = document.getElementById('player-screen');
-    ps.classList.remove('fullscreen');
-    document.getElementById('top-bar').classList.remove('visible');
-    ps.removeEventListener('click', handleFsTap);
-
     if (document.fullscreenElement || document.webkitFullscreenElement) {
-      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
     }
-
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
     isFullscreen = false;
     updateFsBtn();
@@ -409,13 +294,47 @@
     document.getElementById('fs-btn').textContent = isFullscreen ? '✕FS' : '⛶';
   }
 
-  // Listen for native fullscreen exit (e.g. user presses home)
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement) { isFullscreen = false; updateFsBtn(); }
   });
   document.addEventListener('webkitfullscreenchange', () => {
     if (!document.webkitFullscreenElement) { isFullscreen = false; updateFsBtn(); }
   });
+
+  // ── SCROLL LOCK ──
+  // Completely block all touch scrolling — prevents Brave chrome reappearing
+  function blockTouch(e) { e.preventDefault(); }
+
+  function lockScroll() {
+    document.addEventListener('touchmove', blockTouch, { passive: false });
+  }
+
+  function unlockScroll() {
+    document.removeEventListener('touchmove', blockTouch);
+  }
+
+  // Scroll incrementally until Brave's toolbar collapses (detected via innerHeight growing)
+  // then hard-lock so no swipe can bring it back
+  async function nudgeAndLock() {
+    unlockScroll();
+    const startHeight = window.innerHeight;
+
+    // Make page tall enough to scroll
+    document.documentElement.style.height = '200vh';
+    document.documentElement.style.overflow = 'auto';
+
+    // Scroll in small steps, stop as soon as chrome is gone
+    for (let i = 0; i < 80; i++) {
+      window.scrollBy(0, 5);
+      await new Promise(r => setTimeout(r, 25));
+      if (window.innerHeight > startHeight) break; // chrome collapsed!
+    }
+
+    // Reset page size and hard-lock all scrolling
+    document.documentElement.style.height = '';
+    document.documentElement.style.overflow = '';
+    lockScroll();
+  }
 
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') loadVideo();
